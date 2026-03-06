@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from models.slot import Slot, SlotStatus
 from repositories.slot_repository import SlotRepository
+from sqlalchemy.exc import IntegrityError
+import pytest
 
 def test_slot_create():
     start_time = datetime.now()
@@ -35,3 +37,21 @@ def test_slot_persistence(session):
     assert fetched_slot.start_time == start_time
     assert fetched_slot.end_time == end_time
     assert fetched_slot.status == SlotStatus.AVAILABLE
+
+
+def test_prevent_dup_slots(session):
+    start_time = datetime.now()
+    end_time = start_time + timedelta(hours = 1)
+
+    # create and save the first slot
+    slot1 = Slot(start_time=start_time, end_time=end_time)
+    repo = SlotRepository(session)
+    repo.create(slot1)
+
+    # try to create and save the second slot with exact times
+    slot2 = Slot(start_time=start_time, end_time=end_time)
+
+    # assert that doing so throws an IntegrityError
+    with pytest.raises(IntegrityError):
+        repo.create(slot2)
+    
