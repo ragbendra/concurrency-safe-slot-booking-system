@@ -5,6 +5,10 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+class SlotStatus(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    HELD = "HELD"
+    BOOKED = "BOOKED"
 
 class Slot(Base):
     __tablename__ = "slots"
@@ -13,9 +17,7 @@ class Slot(Base):
     end_time = Column(DateTime)
     status = Column(SQLAlchemyEnum(SlotStatus), default = SlotStatus.AVAILABLE, nullable=False)
 
-
-class SlotStatus(str, Enum):
-    AVAILABLE = "AVAILABLE"
-    HELD = "HELD"
-    BOOKED = "BOOKED"
-
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if hasattr(self, 'status') and self.status is None:
+            self.status = SlotStatus.AVAILABLE
