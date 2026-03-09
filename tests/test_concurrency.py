@@ -16,6 +16,7 @@ def test_concurrency(session):
 
     slot_repo = SlotRepository(session)
     saved_slot = slot_repo.create(slot)
+    session.commit()
 
     # booking_repo = BookingRepository(session)
     # booking_service = BookingService(booking_repo, slot_repo)

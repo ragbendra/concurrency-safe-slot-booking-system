@@ -11,7 +11,7 @@ class BookingService:
     
     def book_slot(self, user_id: int, slot_id: int):
         # fetch the slot
-        slot = self.slot_repo.get_by_id(slot_id)
+        slot = self.slot_repo.get_by_id(slot_id, lock=True)
 
         # check if it exists
         if not slot:

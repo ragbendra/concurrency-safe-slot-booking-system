@@ -7,7 +7,7 @@ class BookingRepository:
 
     def create(self, booking: Booking) -> Booking:
         self.session.add(booking)
-        self.session.commit()
+        self.session.flush()
         self.session.refresh(booking)
         return booking
     

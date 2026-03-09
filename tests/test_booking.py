@@ -28,6 +28,7 @@ def test_booking_status(session):
     # we need to save the slot in the database (for this we need repository)
     slot_repo = SlotRepository(session)
     saved_slot = slot_repo.create(slot)
+    session.commit()
 
     # init the service (we assume it requires both repo to function)
     booking_repo = BookingRepository(session)
@@ -55,6 +56,7 @@ def test_booking_already_booked_raises_exceptions(session):
 
     slot_repo = SlotRepository(session)
     saved_slot = slot_repo.create(slot)
+    session.commit()
 
     saved_slot.status = SlotStatus.BOOKED
     session.commit()
