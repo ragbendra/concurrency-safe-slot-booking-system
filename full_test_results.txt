@@ -1,0 +1,78 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.7, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Ragha\Downloads\concurrency-safe-slot-booking-system\venvCSBS\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Ragha\Downloads
+plugins: anyio-4.12.1
+collecting ... collected 10 items
+
+tests\test_booking.py::test_booking_create PASSED
+tests\test_booking.py::test_booking_status PASSED
+tests\test_booking.py::test_booking_already_booked_raises_exceptions PASSED
+tests\test_booking.py::test_booking_nonexistent_slot_raises_exception PASSED
+tests\test_concurrency.py::test_concurrency Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+Unexpected error: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+PASSED
+tests\test_concurrency.py::test_concurrency_stress Iteration 1/50 passed
+Iteration 2/50 passed
+Iteration 3/50 passed
+Iteration 4/50 passed
+Iteration 5/50 passed
+Iteration 6/50 passed
+Iteration 7/50 passed
+Iteration 8/50 passed
+Iteration 9/50 passed
+Iteration 10/50 passed
+Iteration 11/50 passed
+Iteration 12/50 passed
+Iteration 13/50 passed
+Iteration 14/50 passed
+Iteration 15/50 passed
+Iteration 16/50 passed
+Iteration 17/50 passed
+Iteration 18/50 passed
+Iteration 19/50 passed
+Iteration 20/50 passed
+Iteration 21/50 passed
+Iteration 22/50 passed
+Iteration 23/50 passed
+Iteration 24/50 passed
+Iteration 25/50 passed
+Iteration 26/50 passed
+Iteration 27/50 passed
+Iteration 28/50 passed
+Iteration 29/50 passed
+Iteration 30/50 passed
+Iteration 31/50 passed
+Iteration 32/50 passed
+Iteration 33/50 passed
+Iteration 34/50 passed
+Iteration 35/50 passed
+Iteration 36/50 passed
+Iteration 37/50 passed
+Iteration 38/50 passed
+Iteration 39/50 passed
+Iteration 40/50 passed
+Iteration 41/50 passed
+Iteration 42/50 passed
+Iteration 43/50 passed
+Iteration 44/50 passed
+Iteration 45/50 passed
+Iteration 46/50 passed
+Iteration 47/50 passed
+Iteration 48/50 passed
+Iteration 49/50 passed
+Iteration 50/50 passed
+PASSED
+tests\test_slot.py::test_slot_create PASSED
+tests\test_slot.py::test_slot_default_status PASSED
+tests\test_slot.py::test_slot_persistence PASSED
+tests\test_slot.py::test_prevent_dup_slots PASSED
+
+============================= 10 passed in 9.96s ==============================
