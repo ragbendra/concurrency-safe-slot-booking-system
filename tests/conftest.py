@@ -2,12 +2,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import pytest
 from models.slot import Base
-
+from sqlalchemy.pool import StaticPool
 
 @pytest.fixture
 def session():
     # creating an in-memory db for testing
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(bind=engine) # for creating the tables
     # creating a sessionmaker instance
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
