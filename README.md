@@ -54,28 +54,28 @@ With InnoDB, a concurrent transaction requesting the same row waits for the firs
 
 ```text
 .
-|-- models/
-|   |-- __init__.py
-|   |-- booking.py
-|   `-- slot.py
-|-- repositories/
-|   |-- __init__.py
-|   |-- booking_repository.py
-|   `-- slot_repository.py
-|-- services/
-|   `-- booking_service.py
-|-- tests/
-|   |-- __init__.py
-|   |-- conftest.py
-|   |-- test_booking.py
-|   |-- test_concurrency.py
-|   `-- test_slot.py
-|-- .env.example
-|-- 3_slot-booking-system.md
-|-- exceptions.py
-|-- LICENSE
-|-- README.md
-`-- requirements.txt
+├── models/
+│   ├── __init__.py
+│   ├── booking.py
+│   └── slot.py
+├── repositories/
+│   ├── __init__.py
+│   ├── booking_repository.py
+│   └── slot_repository.py
+├── services/
+│   └── booking_service.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_booking.py
+│   ├── test_concurrency.py
+│   └── test_slot.py
+├── .env.example
+├── 3_slot-booking-system.md
+├── exceptions.py
+├── LICENSE
+├── README.md
+└── requirements.txt
 ```
 
 ## Setup
