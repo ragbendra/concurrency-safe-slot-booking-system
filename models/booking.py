@@ -9,6 +9,6 @@ class Booking(Base):
     user_id = Column(Integer, nullable = False, index = True)
     id = Column(Integer, primary_key = True, index = True)
     slot_id = Column(Integer, ForeignKey("slots.id"), nullable = False)
-    created_at = Column(DateTime, default = datetime.now(timezone.utc))
+    # Store naive UTC because this column is a naive DateTime.
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     # slot = relationship("Slot", back_populates = "bookings")
-    
