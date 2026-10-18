@@ -71,7 +71,6 @@ With InnoDB, a concurrent transaction requesting the same row waits for the firs
 │   ├── test_concurrency.py
 │   └── test_slot.py
 ├── .env.example
-├── 3_slot-booking-system.md
 ├── exceptions.py
 ├── LICENSE
 ├── README.md
@@ -122,7 +121,6 @@ Copy-Item .env.example .env
 | `MYSQL_PORT` | MySQL port | `3306` |
 | `MYSQL_DATABASE` | Dedicated test database | `slot_booking_test` |
 
-`.env` is ignored by Git. Do not commit credentials.
 
 ## Running the tests
 
@@ -140,7 +138,7 @@ python -m pytest -v
 | `tests/test_booking.py` | Callable timestamp default, current UTC timestamp persistence, successful booking, and service exceptions. |
 | `tests/test_concurrency.py` | Concurrent result categories plus fresh-session verification of booking rows and slot status. |
 
-Latest recorded full-suite result: `12 passed in 55.60s`.
+Full-suite result: `12 passed in 55.60s`.
 
 ## Concurrency verification
 
