@@ -45,7 +45,6 @@ When two transactions request the same slot, the second transaction waits for th
 │   ├── test_concurrency.py
 │   └── test_slot.py
 ├── .env.example
-├── 3_slot-booking-system.md
 ├── exceptions.py
 ├── LICENSE
 ├── README.md
