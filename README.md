@@ -1,5 +1,7 @@
 # Concurrency-Safe Slot Booking System
 
+[![CI](https://github.com/ragbendra/concurrency-safe-slot-booking-system/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ragbendra/concurrency-safe-slot-booking-system/actions/workflows/ci.yml)
+
 A focused Python/SQLAlchemy backend that demonstrates how a MySQL row lock can protect a single slot from concurrent double-booking.
 
 This repository contains:
@@ -10,6 +12,16 @@ This repository contains:
 - MySQL-backed pytest tests, including concurrent worker tests.
 
 It is intentionally library-style: there is no HTTP API, CLI, authentication layer, or web application. The behavior is exercised through the test suite.
+
+## Continuous integration
+
+GitHub Actions runs the full test suite on pull requests, pushes to `main`, and manual workflow runs. The workflow uses Python 3.12 and a MySQL 8 service container; it waits for MySQL to become healthy before installing `requirements.txt` and running `python -m pytest -v`. This includes the MySQL row-lock concurrency tests. CI creates a dedicated `slot_booking_test` database and does not require repository secrets.
+
+To run the same suite locally, configure the five `MYSQL_*` variables described in [Setup](#setup) to point to a dedicated MySQL test database, then run:
+
+```powershell
+python -m pytest -v
+```
 
 ## Data model
 
