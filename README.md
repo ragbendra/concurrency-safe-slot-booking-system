@@ -2,22 +2,22 @@
 
 [![CI](https://github.com/ragbendra/concurrency-safe-slot-booking-system/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ragbendra/concurrency-safe-slot-booking-system/actions/workflows/ci.yml)
 
-A focused Python/SQLAlchemy backend that demonstrates how a MySQL row lock can protect a single slot from concurrent double-booking.
+A small Python/SQLAlchemy project about one problem: what happens when two requests try to book the same slot at the same moment. The answer here is a MySQL row lock, and the tests are there to check that it really works.
 
-This repository contains:
+The repository has:
 
-- SQLAlchemy models for slots and bookings.
-- Repository classes for persistence operations.
-- A service-layer booking transaction.
-- MySQL-backed pytest tests, including concurrent worker tests.
+- SQLAlchemy models for slots and bookings
+- repository classes for the database access
+- a booking service that does the whole booking in one transaction
+- pytest tests that run against a real MySQL server, including ones with many threads booking at once
 
-It is intentionally library-style: there is no HTTP API, CLI, authentication layer, or web application. The behavior is exercised through the test suite.
+It's a library, not an app. There is no HTTP API, CLI or login. You run it through the tests.
 
 ## Continuous integration
 
-GitHub Actions runs the full test suite on pull requests, pushes to `main`, and manual workflow runs. The workflow uses Python 3.12 and a MySQL 8 service container; it waits for MySQL to become healthy before installing `requirements.txt` and running `python -m pytest -v`. This includes the MySQL row-lock concurrency tests. CI creates a dedicated `slot_booking_test` database and does not require repository secrets.
+GitHub Actions runs the full test suite on pull requests, on pushes to `main`, and when started manually. It uses Python 3.12 and a MySQL 8 service container. The workflow waits until MySQL is healthy, installs `requirements.txt`, then runs `python -m pytest -v`, which includes the concurrency tests. CI creates its own `slot_booking_test` database, so it needs no repository secrets.
 
-To run the same suite locally, configure the five `MYSQL_*` variables described in [Setup](#setup) to point to a dedicated MySQL test database, then run:
+To run the same thing locally, point the five `MYSQL_*` variables from [Setup](#setup) at a test database and run:
 
 ```powershell
 python -m pytest -v
@@ -25,42 +25,42 @@ python -m pytest -v
 
 ## Data model
 
-The ORM defines two tables. The definitions below were checked against `SHOW CREATE TABLE` on MySQL Community Server 8.0.45.
+There are two tables. I checked the definitions below against `SHOW CREATE TABLE` on MySQL Community Server 8.0.45.
 
 ### `slots`
 
 | Column | Definition | Notes |
 | --- | --- | --- |
-| `id` | `INT`, primary key, auto-increment | SQLAlchemy also declares an index; MySQL creates `ix_slots_id`. |
-| `start_time` | `DATETIME(6)`, not null | Microsecond precision is preserved. |
-| `end_time` | `DATETIME(6)`, not null | Must be paired with `start_time`. |
-| `status` | MySQL `ENUM('AVAILABLE', 'HELD', 'BOOKED')`, not null | SQLAlchemy-side default: `AVAILABLE`; no server-side default. |
+| `id` | `INT`, primary key, auto-increment | Also indexed (`ix_slots_id`). |
+| `start_time` | `DATETIME(6)`, not null | Keeps microseconds. |
+| `end_time` | `DATETIME(6)`, not null | |
+| `status` | `ENUM('AVAILABLE', 'HELD', 'BOOKED')`, not null | The default of `AVAILABLE` is set in SQLAlchemy, not in the database. |
 
-Constraint: `_start_end_uc` uniquely indexes `(start_time, end_time)`. It prevents exact duplicate slots, not overlapping time ranges. `HELD` is defined but no current code path sets it.
+A unique index `_start_end_uc` on `(start_time, end_time)` rejects two slots with exactly the same start and end. It does not catch overlapping slots.
 
 ### `bookings`
 
 | Column | Definition | Notes |
 | --- | --- | --- |
-| `id` | `INT`, primary key, auto-increment | SQLAlchemy also declares `ix_bookings_id`. |
-| `user_id` | `INT`, not null | Indexed as `ix_bookings_user_id`. |
-| `slot_id` | `INT`, not null, foreign key to `slots.id` | MySQL creates an index for the foreign key. It is not unique. |
-| `created_at` | `DATETIME`, nullable | SQLAlchemy supplies a callable default containing the current UTC time as a naive UTC value; there is no server-side default. |
+| `id` | `INT`, primary key, auto-increment | Also indexed (`ix_bookings_id`). |
+| `user_id` | `INT`, not null | Indexed (`ix_bookings_user_id`). |
+| `slot_id` | `INT`, not null, foreign key to `slots.id` | MySQL indexes it for the foreign key. It is not unique. |
+| `created_at` | `DATETIME`, nullable | SQLAlchemy fills in the current UTC time as a naive value. There's no default in the database. |
 
-There is deliberately no unique constraint on `bookings.slot_id`. The booking transaction relies on locking the corresponding row in `slots` before checking and changing its status.
+I left `bookings.slot_id` non-unique on purpose. The service locks the slot row before it checks the status, and that lock is what prevents a second booking.
 
-## How booking prevents double-booking
+## How a booking works
 
-`BookingService.book_slot` performs the following transaction:
+`BookingService.book_slot` does this in one transaction:
 
 1. Calls `SlotRepository.get_by_id(slot_id, lock=True)`.
-2. The repository adds `SELECT ... FOR UPDATE`, locking the matching slot row for the current transaction.
-3. Raises `SlotNotFoundException` when no row exists.
-4. Checks the locked status and raises `SlotAlreadyBookedException` when it is already `BOOKED`.
-5. Inserts a `Booking`.
-6. Changes the slot status to `BOOKED` and commits.
+2. The repository adds `SELECT ... FOR UPDATE`, which locks that slot's row until the transaction ends.
+3. If there's no such row, it raises `SlotNotFoundException`.
+4. If the locked row is already `BOOKED`, it raises `SlotAlreadyBookedException`.
+5. Otherwise it inserts a `Booking`.
+6. It sets the slot to `BOOKED` and commits.
 
-With InnoDB, a concurrent transaction requesting the same row waits for the first transaction to release its lock. It then reads the committed `BOOKED` status and takes the expected already-booked path. The row lock is the sole protection against duplicate bookings; the database does not enforce uniqueness on `bookings.slot_id`.
+With InnoDB, a second transaction asking for the same row waits for the first one to finish. When it gets the row it sees the committed `BOOKED` status and takes the already-booked path. The row lock is the only thing protecting against double bookings. The database itself doesn't enforce one booking per slot.
 
 ## Project structure
 
@@ -91,7 +91,7 @@ With InnoDB, a concurrent transaction requesting the same row waits for the firs
 
 ## Setup
 
-The full MySQL-backed suite was verified with Python 3.12.7. The code requires Python 3.10 or newer because it uses modern union type annotations.
+I ran the full suite on Python 3.12.7. The code needs Python 3.10 or newer because it uses the newer union type syntax.
 
 ### 1. Create a virtual environment
 
@@ -103,9 +103,9 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-### 2. Create a dedicated test database
+### 2. Create a test database
 
-The tests create tables and drop them during fixture teardown. Use an empty database dedicated to this test project:
+The tests create the tables and drop them again when they finish, so use an empty database that is only for this project:
 
 ```sql
 CREATE DATABASE slot_booking_test;
@@ -113,26 +113,23 @@ CREATE USER 'slot_booking_test'@'127.0.0.1' IDENTIFIED BY 'change_me';
 GRANT ALL PRIVILEGES ON slot_booking_test.* TO 'slot_booking_test'@'127.0.0.1';
 ```
 
-The fixture refuses to run when `MYSQL_DATABASE` does not contain `test`.
+The fixture refuses to run if `MYSQL_DATABASE` doesn't contain `test`.
 
-### 3. Configure the connection
+### 3. Set the connection details
 
-Copy the example file and edit the values for the local MySQL server:
+Copy the example file and edit the values for your MySQL server:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-`.env.example` documents these variables:
-
-| Variable | Purpose | Example |
+| Variable | What it's for | Example |
 | --- | --- | --- |
-| `MYSQL_USER` | MySQL account used by the tests | `slot_booking_test` |
+| `MYSQL_USER` | MySQL account the tests use | `slot_booking_test` |
 | `MYSQL_PASSWORD` | Password for that account | `change_me` |
 | `MYSQL_HOST` | MySQL host | `127.0.0.1` |
 | `MYSQL_PORT` | MySQL port | `3306` |
-| `MYSQL_DATABASE` | Dedicated test database | `slot_booking_test` |
-
+| `MYSQL_DATABASE` | The test database | `slot_booking_test` |
 
 ## Running the tests
 
@@ -142,53 +139,45 @@ From the repository root:
 python -m pytest -v
 ```
 
-**Safety warning:** the fixtures call `Base.metadata.create_all()` before each database-backed test and `Base.metadata.drop_all()` afterward. Point the environment variables at a dedicated empty database. The database-name guard prevents accidental use of names that do not contain `test`, but it cannot identify every unsafe database name.
+**Careful:** the fixtures call `Base.metadata.create_all()` before each database test and `Base.metadata.drop_all()` after it. Only point them at an empty database made for testing. The "must contain `test`" check stops the obvious mistakes, but it can't tell whether a database with `test` in its name is actually safe to wipe.
 
-| Test file | Coverage |
+| Test file | What it covers |
 | --- | --- |
-| `tests/test_slot.py` | Slot construction, the `AVAILABLE` default, persistence, and exact-duplicate rejection. |
-| `tests/test_booking.py` | Callable timestamp default, current UTC timestamp persistence, successful booking, and service exceptions. |
-| `tests/test_concurrency.py` | Concurrent result categories plus fresh-session verification of booking rows and slot status. |
+| `tests/test_slot.py` | Creating a slot, the `AVAILABLE` default, saving it, and rejecting an exact duplicate. |
+| `tests/test_booking.py` | The `created_at` default, saving the current UTC time, a successful booking, and the service exceptions. |
+| `tests/test_concurrency.py` | Many threads booking at once, then a check with a fresh session of the booking rows and the slot status. |
 
-Full-suite result: `12 passed in 55.60s`.
+The full suite is 12 tests and takes a bit under a minute (55.60s and 57.94s on two runs).
 
-## Concurrency verification
+## Concurrency checks
 
-Each worker creates an independent SQLAlchemy `Session` from the fixture's `sessionmaker`. The engine uses `NullPool`, so worker sessions obtain independent MySQL connections rather than sharing a pooled connection.
+Each worker thread opens its own SQLAlchemy `Session` from the fixture's `sessionmaker`. The engine uses `NullPool`, so every worker gets its own MySQL connection instead of sharing one from a pool.
 
-The tests verify:
+What the tests check:
 
-- The single-slot case uses 10 worker threads.
-- The stress case repeats the 10-thread case across 50 different slots, for 500 booking attempts.
-- Exactly 1 worker returns `booked`.
-- Exactly 9 workers return `already_booked`.
-- 0 workers return `error`; unexpected exception text is included in the assertion message.
-- A fresh session sees exactly one booking row for the slot.
-- A fresh session sees the slot status as `BOOKED`.
+- The single-slot test uses 10 threads.
+- The stress test repeats that over 50 different slots, so 500 booking attempts in total.
+- For each slot, exactly 1 worker books it and exactly 9 get `already_booked`.
+- No worker ends in `error`. If one does, the exception text is in the assertion message.
+- A fresh session finds exactly one booking row for the slot, and the slot status is `BOOKED`.
 
-The verified environment was Python 3.12.7 with MySQL Community Server 8.0.45:
+I also checked that the test can fail. With `lock=True` changed to `lock=False`, the stress test failed on the first slot. It saw only 6 `already_booked` results instead of 9, and some workers raised unexpected errors. I put `lock=True` back afterwards and the concurrency tests passed again (2 passed in 57.38s).
 
-| Command | Result |
-| --- | --- |
-| `pytest tests/ -v` | `12 passed in 57.94s` |
-| `pytest tests/test_concurrency.py -v` | Both concurrency tests passed in `53.90s`. |
-| `pytest tests/test_concurrency.py::test_concurrency_stress -v` | Stress test passed in `48.15s`. |
-| `pytest tests/ -v -s` | `12 passed in 55.60s`. |
-| `pytest tests/test_concurrency.py -q` after restoring the lock | `2 passed in 57.38s`. |
-
-The mutation check supports the test's purpose: changing `lock=True` to `lock=False` caused the stress test to fail at iteration 0. It observed only 6 `already_booked` results instead of 9, with unexpected worker errors. The service was restored to `lock=True` afterward.
+All of these results are from Python 3.12.7 and MySQL Community Server 8.0.45.
 
 ## Known limitations
 
-- There is no HTTP API, CLI, authentication, or user-management layer.
-- Overlapping slots are not detected; only exact duplicate `(start_time, end_time)` pairs are rejected.
-- `HELD` is defined in the enum but is currently unused.
-- The row lock is the sole double-booking guard; `bookings.slot_id` is not unique.
-- There is no migration workflow. Tests create and drop tables directly with SQLAlchemy metadata.
-- The concurrency tests require a real MySQL-compatible server with transactional row-lock behavior; SQLite is not a substitute for these tests.
-- `created_at` is stored as naive UTC because the database column is a naive `DATETIME`; callers must interpret it as UTC.
-- The documented concurrency results were produced on MySQL Community Server 8.0.45. Results may differ on other MySQL-compatible servers.
+This is a library: there's no HTTP API, CLI, login or user management.
+
+Things it doesn't do:
+
+- It doesn't detect overlapping slots. Only an exact same start and end is rejected, so 10:00-11:00 and 10:30-11:30 can both exist.
+- Nothing but the row lock stops a double booking. `bookings.slot_id` isn't unique, so anything that writes bookings without going through the service could book a slot twice.
+- `HELD` is in the status enum, but nothing sets it.
+- There are no migrations. The tests create and drop the tables straight from the models.
+
+Smaller notes: `created_at` is a naive `DATETIME`, so callers have to treat it as UTC. The concurrency tests need a real MySQL server with InnoDB-style row locks, so SQLite won't work for them. I've only run this on MySQL 8.0.45, so I can't say how it behaves on other MySQL-compatible servers.
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
